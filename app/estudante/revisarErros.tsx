@@ -10,8 +10,9 @@ import {
     View
 } from 'react-native';
 
-import { apiClient } from '@/src/services/api';
+import { RequirePremium } from '@/src/components/RequirePremium';
 import { useSubscription } from '@/src/hooks/useSubscription';
+import { apiClient } from '@/src/services/api';
 
 interface Answer {
     id: number;
@@ -128,168 +129,171 @@ export default function RevisarErros() {
     }
 
     return (
-        <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
-            {/* Alerta de Informações */}
-            <View style={styles.infoAlert}>
-                <Feather name="info" size={18} color="#3b82f6" />
-                <Text style={styles.infoAlertText}>
-                    Você tem <Text style={{ fontWeight: 'bold' }}>{questions.length}</Text> questões para revisar.
-                </Text>
-            </View>
+        <RequirePremium>
 
-            {/* Grid/Lista de Questões */}
-            {currentQuestions.map((q) => (
-                <View key={q.id} style={styles.questionCard}>
-                    {/* Header do Card */}
-                    <View style={styles.qHeader}>
-                        <View style={styles.badge}>
-                            <Text style={styles.badgeText}>{q.vestibular} {q.ano}</Text>
-                        </View>
-                        <Text style={[
-                            styles.difficulty,
-                            q.difficulty?.toLowerCase() === 'easy' && styles.difficultyEasy,
-                            q.difficulty?.toLowerCase() === 'medium' && styles.difficultyMedium,
-                            q.difficulty?.toLowerCase() === 'hard' && styles.difficultyHard,
-                        ]}>
-                            {q.difficulty}
-                        </Text>
-                    </View>
-
-                    {/* Enunciado */}
-                    <Text style={styles.statement}>{q.statement}</Text>
-
-                    {/* Alternativas */}
-                    <View style={styles.alternativesContainer}>
-                        {q.answers?.map((ans, idx) => {
-                            const selectedId = userAnswers[q.id];
-                            const isSelected = selectedId === ans.id;
-                            const hasAnswered = !!selectedId;
-                            const isCorrect = ans.correct;
-
-                            const buttonStyle: any[] = [styles.altBtn];
-                            const textStyle: any[] = [styles.altBtnText];
-                            const indicatorStyle: any[] = [styles.indexIndicator];
-                            const indicatorTextStyle: any[] = [styles.indexIndicatorText];
-
-                            if (hasAnswered) {
-                                if (isSelected && isCorrect) {
-                                    buttonStyle.push(styles.correctSelected);
-                                    textStyle.push(styles.textWhite);
-                                    indicatorStyle.push(styles.indicatorTransparent);
-                                    indicatorTextStyle.push(styles.textWhite);
-                                } else if (isSelected && !isCorrect) {
-                                    buttonStyle.push(styles.wrongSelected);
-                                    textStyle.push(styles.textWhite);
-                                    indicatorStyle.push(styles.indicatorTransparent);
-                                    indicatorTextStyle.push(styles.textWhite);
-                                } else if (!isSelected && isCorrect) {
-                                    buttonStyle.push(styles.correctNotSelected);
-                                    textStyle.push(styles.textCorrectDark);
-                                    indicatorStyle.push(styles.indicatorSuccess);
-                                    indicatorTextStyle.push(styles.textWhite);
-                                }
-                            }
-
-                            return (
-                                <TouchableOpacity
-                                    key={ans.id}
-                                    style={buttonStyle}
-                                    onPress={() => handleSelectOption(q.id, ans.id)}
-                                    disabled={hasAnswered}
-                                    activeOpacity={0.7}
-                                >
-                                    <View style={indicatorStyle}>
-                                        <Text style={indicatorTextStyle}>{String.fromCharCode(65 + idx)}</Text>
-                                    </View>
-                                    <Text style={[textStyle, { flex: 1 }]}>{ans.text}</Text>
-
-                                    {hasAnswered && isCorrect && isSelected && (
-                                        <Feather name="check-circle" size={18} color="#fff" />
-                                    )}
-                                    {hasAnswered && isSelected && !isCorrect && (
-                                        <Feather name="x-circle" size={18} color="#fff" />
-                                    )}
-                                </TouchableOpacity>
-                            );
-                        })}
-                    </View>
-
-                    {/* Footer do Card */}
-                    <View style={styles.qFooter}>
-                        <Text style={styles.topicName}>{q.subjectName} • {q.topicName}</Text>
-
-                        {/* Renderização Condicional da Resolução */}
-                        {userAnswers[q.id] && (
-                            hasPremiumAccess ? (
-                                <TouchableOpacity
-                                    style={styles.btnShowResponse}
-                                    onPress={() => handleOpenResponse(q)}
-                                >
-                                    <Feather name="info" size={16} color="#fff" style={{ marginRight: 6 }} />
-                                    <Text style={styles.btnShowResponseText}>Ver Resolução</Text>
-                                </TouchableOpacity>
-                            ) : (
-                                <View style={styles.btnAiDisabled}>
-                                    <Text style={styles.btnAiDisabledText}>🔒 Ver Resolução (Premium)</Text>
-                                </View>
-                            )
-                        )}
-                    </View>
+            <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
+                {/* Alerta de Informações */}
+                <View style={styles.infoAlert}>
+                    <Feather name="info" size={18} color="#3b82f6" />
+                    <Text style={styles.infoAlertText}>
+                        Você tem <Text style={{ fontWeight: 'bold' }}>{questions.length}</Text> questões para revisar.
+                    </Text>
                 </View>
-            ))}
 
-            {/* Paginação */}
-            {totalPages > 1 && (
-                <View style={styles.pagination}>
-                    <TouchableOpacity
-                        style={[styles.pageBtn, currentPage === 1 && styles.pageBtnDisabled]}
-                        disabled={currentPage === 1}
-                        onPress={() => setCurrentPage((prev) => prev - 1)}
-                    >
-                        <Feather name="arrow-left" size={16} color={currentPage === 1 ? '#9ca3af' : '#111827'} />
-                        <Text style={[styles.pageBtnText, currentPage === 1 && styles.pageBtnTextDisabled]}>Anterior</Text>
-                    </TouchableOpacity>
-
-                    <Text style={styles.pageInfo}>Página {currentPage} de {totalPages}</Text>
-
-                    <TouchableOpacity
-                        style={[styles.pageBtn, currentPage === totalPages && styles.pageBtnDisabled]}
-                        disabled={currentPage === totalPages}
-                        onPress={() => setCurrentPage((prev) => prev + 1)}
-                    >
-                        <Text style={[styles.pageBtnText, currentPage === totalPages && styles.pageBtnTextDisabled]}>Próxima</Text>
-                        <Feather name="arrow-right" size={16} color={currentPage === totalPages ? '#9ca3af' : '#111827'} />
-                    </TouchableOpacity>
-                </View>
-            )}
-
-            {/* Modal de Explicação/Resolução */}
-            <Modal
-                visible={isResponseModalOpen}
-                transparent={true}
-                animationType="fade"
-                onRequestClose={() => setIsResponseModalOpen(false)}
-            >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.responseModalContent}>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Resolução Comentada</Text>
-                            <TouchableOpacity
-                                onPress={() => setIsResponseModalOpen(false)}
-                                style={styles.closeBtn}
-                            >
-                                <Feather name="x" size={20} color="#6b7280" />
-                            </TouchableOpacity>
-                        </View>
-                        <ScrollView style={styles.modalBody}>
-                            <View style={styles.responseTextCard}>
-                                <Text style={styles.responseText}>{activeResponse}</Text>
+                {/* Grid/Lista de Questões */}
+                {currentQuestions.map((q) => (
+                    <View key={q.id} style={styles.questionCard}>
+                        {/* Header do Card */}
+                        <View style={styles.qHeader}>
+                            <View style={styles.badge}>
+                                <Text style={styles.badgeText}>{q.vestibular} {q.ano}</Text>
                             </View>
-                        </ScrollView>
+                            <Text style={[
+                                styles.difficulty,
+                                q.difficulty?.toLowerCase() === 'easy' && styles.difficultyEasy,
+                                q.difficulty?.toLowerCase() === 'medium' && styles.difficultyMedium,
+                                q.difficulty?.toLowerCase() === 'hard' && styles.difficultyHard,
+                            ]}>
+                                {q.difficulty}
+                            </Text>
+                        </View>
+
+                        {/* Enunciado */}
+                        <Text style={styles.statement}>{q.statement}</Text>
+
+                        {/* Alternativas */}
+                        <View style={styles.alternativesContainer}>
+                            {q.answers?.map((ans, idx) => {
+                                const selectedId = userAnswers[q.id];
+                                const isSelected = selectedId === ans.id;
+                                const hasAnswered = !!selectedId;
+                                const isCorrect = ans.correct;
+
+                                const buttonStyle: any[] = [styles.altBtn];
+                                const textStyle: any[] = [styles.altBtnText];
+                                const indicatorStyle: any[] = [styles.indexIndicator];
+                                const indicatorTextStyle: any[] = [styles.indexIndicatorText];
+
+                                if (hasAnswered) {
+                                    if (isSelected && isCorrect) {
+                                        buttonStyle.push(styles.correctSelected);
+                                        textStyle.push(styles.textWhite);
+                                        indicatorStyle.push(styles.indicatorTransparent);
+                                        indicatorTextStyle.push(styles.textWhite);
+                                    } else if (isSelected && !isCorrect) {
+                                        buttonStyle.push(styles.wrongSelected);
+                                        textStyle.push(styles.textWhite);
+                                        indicatorStyle.push(styles.indicatorTransparent);
+                                        indicatorTextStyle.push(styles.textWhite);
+                                    } else if (!isSelected && isCorrect) {
+                                        buttonStyle.push(styles.correctNotSelected);
+                                        textStyle.push(styles.textCorrectDark);
+                                        indicatorStyle.push(styles.indicatorSuccess);
+                                        indicatorTextStyle.push(styles.textWhite);
+                                    }
+                                }
+
+                                return (
+                                    <TouchableOpacity
+                                        key={ans.id}
+                                        style={buttonStyle}
+                                        onPress={() => handleSelectOption(q.id, ans.id)}
+                                        disabled={hasAnswered}
+                                        activeOpacity={0.7}
+                                    >
+                                        <View style={indicatorStyle}>
+                                            <Text style={indicatorTextStyle}>{String.fromCharCode(65 + idx)}</Text>
+                                        </View>
+                                        <Text style={[textStyle, { flex: 1 }]}>{ans.text}</Text>
+
+                                        {hasAnswered && isCorrect && isSelected && (
+                                            <Feather name="check-circle" size={18} color="#fff" />
+                                        )}
+                                        {hasAnswered && isSelected && !isCorrect && (
+                                            <Feather name="x-circle" size={18} color="#fff" />
+                                        )}
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+
+                        {/* Footer do Card */}
+                        <View style={styles.qFooter}>
+                            <Text style={styles.topicName}>{q.subjectName} • {q.topicName}</Text>
+
+                            {/* Renderização Condicional da Resolução */}
+                            {userAnswers[q.id] && (
+                                hasPremiumAccess ? (
+                                    <TouchableOpacity
+                                        style={styles.btnShowResponse}
+                                        onPress={() => handleOpenResponse(q)}
+                                    >
+                                        <Feather name="info" size={16} color="#fff" style={{ marginRight: 6 }} />
+                                        <Text style={styles.btnShowResponseText}>Ver Resolução</Text>
+                                    </TouchableOpacity>
+                                ) : (
+                                    <View style={styles.btnAiDisabled}>
+                                        <Text style={styles.btnAiDisabledText}>🔒 Ver Resolução (Premium)</Text>
+                                    </View>
+                                )
+                            )}
+                        </View>
                     </View>
-                </View>
-            </Modal>
-        </ScrollView>
+                ))}
+
+                {/* Paginação */}
+                {totalPages > 1 && (
+                    <View style={styles.pagination}>
+                        <TouchableOpacity
+                            style={[styles.pageBtn, currentPage === 1 && styles.pageBtnDisabled]}
+                            disabled={currentPage === 1}
+                            onPress={() => setCurrentPage((prev) => prev - 1)}
+                        >
+                            <Feather name="arrow-left" size={16} color={currentPage === 1 ? '#9ca3af' : '#111827'} />
+                            <Text style={[styles.pageBtnText, currentPage === 1 && styles.pageBtnTextDisabled]}>Anterior</Text>
+                        </TouchableOpacity>
+
+                        <Text style={styles.pageInfo}>Página {currentPage} de {totalPages}</Text>
+
+                        <TouchableOpacity
+                            style={[styles.pageBtn, currentPage === totalPages && styles.pageBtnDisabled]}
+                            disabled={currentPage === totalPages}
+                            onPress={() => setCurrentPage((prev) => prev + 1)}
+                        >
+                            <Text style={[styles.pageBtnText, currentPage === totalPages && styles.pageBtnTextDisabled]}>Próxima</Text>
+                            <Feather name="arrow-right" size={16} color={currentPage === totalPages ? '#9ca3af' : '#111827'} />
+                        </TouchableOpacity>
+                    </View>
+                )}
+
+                {/* Modal de Explicação/Resolução */}
+                <Modal
+                    visible={isResponseModalOpen}
+                    transparent={true}
+                    animationType="fade"
+                    onRequestClose={() => setIsResponseModalOpen(false)}
+                >
+                    <View style={styles.modalOverlay}>
+                        <View style={styles.responseModalContent}>
+                            <View style={styles.modalHeader}>
+                                <Text style={styles.modalTitle}>Resolução Comentada</Text>
+                                <TouchableOpacity
+                                    onPress={() => setIsResponseModalOpen(false)}
+                                    style={styles.closeBtn}
+                                >
+                                    <Feather name="x" size={20} color="#6b7280" />
+                                </TouchableOpacity>
+                            </View>
+                            <ScrollView style={styles.modalBody}>
+                                <View style={styles.responseTextCard}>
+                                    <Text style={styles.responseText}>{activeResponse}</Text>
+                                </View>
+                            </ScrollView>
+                        </View>
+                    </View>
+                </Modal>
+            </ScrollView>
+        </RequirePremium>
     );
 }
 
